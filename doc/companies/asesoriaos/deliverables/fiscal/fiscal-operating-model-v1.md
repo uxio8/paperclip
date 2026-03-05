@@ -73,6 +73,25 @@ Rule: when a fiscal rule is not yet validated, the system may surface a draft in
 
 ## 5. Canonical Monthly Workflow Map
 
+### 5.0 Initial wedge operating profile
+
+The operating model should optimize for the smallest repeatable advisory loop:
+
+- `autonomo_standard`: one taxpayer, monthly/quarterly document collection, mostly domestic invoices and receipts
+- `micro_sl_standard`: one legal entity, low document volume, one or two business bank accounts, mostly domestic supplier and sales invoices
+
+Common monthly operating goals:
+- close the intake window for the target period
+- transform source documents into reviewable draft entries
+- surface unresolved items before period summary generation
+- hand the operator an approval-ready VAT-support package, not a silently completed filing
+
+Period close is considered operationally complete only when:
+- every received document has a visible disposition
+- every included summary total traces back to reviewed entries
+- every excluded or deferred item is listed with a reason code
+- the case has a visible next step if downstream filing work remains out of scope
+
 ### 5.1 Workflow A: monthly bookkeeping cycle
 
 1. Open period for a client and create a case
@@ -87,6 +106,22 @@ Rule: when a fiscal rule is not yet validated, the system may surface a draft in
 10. Freeze reviewed entries for the period draft
 11. Produce period summary and VAT-support package
 12. Leave filing or downstream side effects in operator-controlled status
+
+Implementation note:
+- Steps 2 to 7 may run continuously through the month.
+- Steps 8 to 12 are the controlled period-close path.
+- Late-arriving items after step 10 must re-open a visible review path, never silently mutate a frozen draft.
+
+### 5.1.1 Monthly workflow swimlane
+
+| Stage | System responsibility | Operator responsibility | Client responsibility | Exit condition |
+| --- | --- | --- | --- | --- |
+| Case opening | create period case, preload checklist, set due dates | confirm client scope and known obligations | none | case is `received` |
+| Intake | ingest files/messages, dedup hints, assign source refs | monitor intake completeness | upload documents and answer requests | all new items are visible in queue |
+| Extraction and normalization | classify, OCR/extract, normalize fields, score confidence | spot-check queue and review failures | none unless clarification requested | items are `interpreted` or `needs review` |
+| Review triage | group routine vs exception items, compute materiality signals | decide routine approvals and escalation order | answer blocking questions | every item has a route: routine, review, defer, request |
+| Period draft | compute included/excluded totals from reviewed items | review summary and unresolved list | optionally provide late evidence | case reaches `ready_for_approval` only if rules pass |
+| Downstream handoff | package evidence and summary for later filing/closing work | approve package or keep blocked | none | case is approved, deferred, or blocked with reason |
 
 ### 5.2 Workflow B: per-document transformation
 
@@ -111,6 +146,17 @@ Required evidence retained at every stage:
 - extraction output with confidence
 - normalized fields with provenance
 - interpretation decision or review reason
+
+### 5.2.1 Per-document decision table
+
+| Document family | Automatable actions | Mandatory review triggers | Expected draft output |
+| --- | --- | --- | --- |
+| Outbound invoice | classify, extract totals, identify period candidate, propose income entry | missing customer identity, inconsistent totals, corrective wording | proposed sales entry + VAT candidate + evidence refs |
+| Inbound invoice | classify, extract supplier/date/totals, suggest expense category | missing supplier, ambiguous VAT, unusual tax wording, duplicate risk | proposed expense entry + deductibility candidate + evidence refs |
+| Simplified receipt | extract merchant/date/total, suggest expense type | low image quality, unclear business purpose, no tax breakdown when material | draft expense item with review reason if not routine |
+| Credit/corrective document | classify as correction candidate, attempt linkage | original missing, unclear correction scope, sign reversal uncertainty | draft correction envelope linked to original or flagged exception |
+| Bank transaction support | ingest movement metadata, attempt document match | no support document, conflicting amount/date, duplicate match candidates | unmatched movement exception or linked payment hint |
+| Non-bookable / unknown | preserve file, assign reason code, keep visible | always | visible exception record with operator disposition required |
 
 ### 5.3 Workflow C: VAT-support cycle
 
@@ -203,6 +249,17 @@ Operator-reviewed:
 - transactions lacking source support
 - any material override to draft totals
 
+### 6.5 Reviewability rule for proposed ledger effects
+
+No proposed ledger effect may be treated as routine unless all of the following are true:
+- document family is resolved to a single candidate
+- normalized totals reconcile internally
+- tax treatment candidate is within validated scope for the wedge
+- counterparty and period candidate are present or explicitly non-material
+- no mandatory review reason code is active
+
+If any condition fails, the item remains review-visible and cannot flow into period totals as a routine inclusion.
+
 ## 7. Review and Exception Model
 
 ### 7.1 Mandatory review triggers
@@ -238,6 +295,34 @@ A period case should move to `blocked` when:
 - the client has not answered a blocking request
 - a policy or legal interpretation is unresolved
 - the period contains unresolved items that materially affect summary outputs
+
+### 7.4 Exception triage buckets
+
+Exceptions should not appear as one generic queue. The first fiscal wedge needs visible separation between:
+
+- `data_quality`: OCR failure, unreadable file, multi-document ambiguity
+- `document_logic`: duplicate, corrective chain, period mismatch, missing counterparty
+- `tax_logic`: VAT ambiguity, deductibility ambiguity, cross-border/unvalidated treatment
+- `workflow_blocker`: missing client response, missing source support, unresolved specialist decision
+- `period_risk`: late-arriving item, draft changed after approval, material exclusions near close
+
+Each exception must store:
+- primary bucket
+- reason code
+- severity (`low|medium|high`)
+- whether operator review alone can resolve it
+- whether client input is required
+- whether specialist validation is required
+
+### 7.5 Human-review service-level expectation
+
+This is an operating target, not a legal commitment:
+
+- routine queue: items should be approvable in batch with evidence summaries
+- exception queue: reviewer should understand the problem in under one minute from the review card
+- blocked queue: each blocked case should show exactly who must act next and why
+
+If an exception card cannot explain itself quickly, the product has failed the workflow design even if the underlying model is correct.
 
 ## 8. Domain Rules and Acceptance Criteria
 
@@ -289,6 +374,30 @@ Acceptance criteria:
 - Operator overrides are logged with before/after values.
 - Review decisions can be reconstructed later from the audit trail.
 
+### 8.5 Period close readiness
+
+Rules:
+- A case cannot become `ready_for_approval` while any material item lacks a disposition.
+- Deferred items must remain attached to the case and period summary.
+- Late-arriving items after draft freeze must produce a visible re-open event or explicit defer decision.
+
+Acceptance criteria:
+- The period summary exposes counts and amounts for `included`, `excluded`, `deferred`, and `awaiting_client`.
+- Operators can see which late items changed the draft after the first freeze.
+- A reviewer can identify in one screen whether the case is approval-ready or only draft-ready.
+
+### 8.6 Client follow-up workflow
+
+Rules:
+- Missing information requests must reference the exact item or exception that triggered the request.
+- Client responses may resume automation, but they do not bypass review if the original risk remains.
+- Client silence must remain visible as an operational blocker, not disappear into a background state.
+
+Acceptance criteria:
+- Every client request links to the triggering document or unresolved movement.
+- A case returning from client response re-enters the queue with a visible `updated_by_client` signal.
+- Operators can distinguish between missing-document blockers and pure internal-review blockers.
+
 ## 9. Edge-Case List for MVP
 
 These should be visible as first-class exception types, even if resolution remains manual.
@@ -332,6 +441,24 @@ These should be visible as first-class exception types, even if resolution remai
 - same document appears in two client workspaces
 - material unresolved item exists near filing deadline
 - multiple low-confidence items create period-level uncertainty even if each item is small
+
+### 9.6 Entity-setup edge cases
+
+- autonomo using one bank account for mixed personal and business activity
+- micro-SL with partner-paid expense later reimbursed by company
+- client changes tax regime assumptions mid-period without clean evidence trail
+- advisory receives historical backlog documents mixed with current-period intake
+- multiple establishments or activities exist but client setup is incomplete
+
+### 9.7 Product handling rule for all edge cases
+
+For MVP, edge cases must resolve to one of four visible outcomes:
+- `operator_can_resolve`
+- `client_input_required`
+- `specialist_validation_required`
+- `out_of_scope_manual_process`
+
+No edge case may end in an implicit discard, hidden warning, or silent summary exclusion.
 
 ## 10. Example Client Journeys
 
@@ -406,6 +533,66 @@ Expected outputs:
 - review decision before totals are recomputed into approval package
 - period summary change history visible to operator
 
+### 10.5 Journey E: mixed-use autonomo bank account
+
+Profile:
+- autonomo uses a single bank account for business income, supplier payments, and personal card settlements
+
+Expected flow:
+1. Bank movements are imported or uploaded as support context
+2. System links clear invoice-backed movements where possible
+3. Personal-looking or unsupported movements remain unbooked and visible
+4. Operator reviews only the unresolved subset instead of the full bank list
+5. Case summary distinguishes invoice-backed items from unsupported bank activity
+
+Expected outputs:
+- linked movement-to-document suggestions with confidence
+- visible list of unsupported or likely personal movements
+- no automatic routine expense entry based only on bank text
+- operator note trail for any manual inclusion decision
+
+### 10.6 Journey F: late supplier invoice after draft freeze
+
+Profile:
+- micro-SL period draft was prepared, then a supplier invoice for the same period arrives two days later
+
+Expected flow:
+1. New document lands in the existing case and is tagged `late_arriving_document`
+2. System does not silently recalculate the frozen summary
+3. Operator decides whether to reopen the draft or defer the item
+4. Audit trail records who made the decision and what changed
+
+Expected outputs:
+- visible late-arrival banner on the case
+- before/after draft summary if reopened
+- explicit defer reason if left out of the current package
+
+### 10.7 Expected output objects for the first product slice
+
+For each case, the product should be able to render these operator-facing outputs:
+
+1. `document_disposition_list`
+- every received item
+- current state
+- review reason codes
+- final disposition
+
+2. `review_queue_snapshot`
+- items pending operator action
+- grouped by exception bucket and severity
+
+3. `period_summary`
+- included totals
+- excluded totals
+- deferred totals
+- unresolved item counts
+
+4. `evidence_bundle`
+- source refs
+- normalized fields with provenance
+- review decisions
+- summary assumptions and warnings
+
 ## 11. Operator-Facing Reason Codes
 
 Initial reason-code set for fiscal review:
@@ -425,6 +612,13 @@ Initial reason-code set for fiscal review:
 
 These should be stable enough for queueing, reporting, and QA datasets.
 
+Recommended additions for workflow control:
+- `updated_by_client`
+- `materiality_threshold_exceeded`
+- `specialist_validation_required`
+- `mixed_use_indicator`
+- `draft_reopened_after_freeze`
+
 ## 12. QA and Audit Expectations for the Fiscal Domain
 
 The fiscal workflow is acceptable for MVP only if QA can verify:
@@ -441,6 +635,13 @@ Recommended golden dataset composition:
 - corrective-document scenarios
 - ambiguous deductibility scenarios
 - cross-border/unvalidated scenarios
+
+Minimum fiscal acceptance test pack:
+- one autonomo routine month with no material exceptions
+- one micro-SL month with unresolved bank-support gaps
+- one corrective-document chain that changes prior draft totals
+- one late-arriving document scenario after draft freeze
+- one mixed-use expense scenario requiring operator judgment
 
 ## 13. Open Questions for Board or Specialist Validation
 
@@ -462,3 +663,20 @@ Optimize for:
 - period-level visibility
 - operator override logging
 - visible exceptions instead of hidden uncertainty
+
+## 15. Initial Implementation Priorities
+
+To stay inside the wedge, implement in this order:
+
+1. stable intake and document disposition tracking
+2. constrained source-to-ledger proposal logic for routine domestic documents
+3. review cockpit reason codes and exception buckets
+4. period summary with included/excluded/deferred visibility
+5. client request loop for missing support
+6. corrective and late-arriving document handling
+
+Avoid first-wave implementation of:
+- generalized bookkeeping flexibility that hides rules inside configuration sprawl
+- automatic bank-booking without source support
+- implied filing readiness when unresolved material items remain
+- advanced tax-regime branching not yet validated
