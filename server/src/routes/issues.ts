@@ -15,6 +15,7 @@ import { validate } from "../middleware/validate.js";
 import {
   accessService,
   agentService,
+  customerIntakeService,
   goalService,
   heartbeatService,
   issueApprovalService,
@@ -23,7 +24,7 @@ import {
   projectService,
 } from "../services/index.js";
 import { logger } from "../middleware/logger.js";
-import { forbidden, HttpError, unauthorized } from "../errors.js";
+import { forbidden, HttpError, unauthorized, unprocessable } from "../errors.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 
 const MAX_ATTACHMENT_BYTES = Number(process.env.PAPERCLIP_ATTACHMENT_MAX_BYTES) || 10 * 1024 * 1024;
@@ -41,6 +42,7 @@ export function issueRoutes(db: Db, storage: StorageService) {
   const access = accessService(db);
   const heartbeat = heartbeatService(db);
   const agentsSvc = agentService(db);
+  const customerIntake = customerIntakeService(db, storage);
   const projectsSvc = projectService(db);
   const goalsSvc = goalService(db);
   const issueApprovalsSvc = issueApprovalService(db);
@@ -113,6 +115,48 @@ export function issueRoutes(db: Db, storage: StorageService) {
     if (runId) return runId;
     res.status(401).json({ error: "Agent run id required" });
     return null;
+  }
+
+  function trimOptionalString(value: unknown) {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  async function assertCustomerIssuePatch(
+    existing: Awaited<ReturnType<typeof svc.getById>>,
+    patch: Record<string, unknown>,
+  ) {
+    if (!existing) return;
+    const nextExternalRequesterId =
+      patch.externalRequesterId !== undefined ? (patch.externalRequesterId as string | null) : existing.externalRequesterId;
+    const nextStatus = typeof patch.status === "string" ? patch.status : existing.status;
+    const nextProjectId =
+      patch.projectId !== undefined ? (patch.projectId as string | null) : existing.projectId;
+    const nextCustomerResolutionSummary =
+      patch.customerResolutionSummary !== undefined
+        ? trimOptionalString(patch.customerResolutionSummary)
+        : existing.customerResolutionSummary;
+    const nextDeliveryBranch =
+      patch.deliveryBranch !== undefined ? trimOptionalString(patch.deliveryBranch) : existing.deliveryBranch;
+    const nextDeliveryCommitSha =
+      patch.deliveryCommitSha !== undefined ? trimOptionalString(patch.deliveryCommitSha) : existing.deliveryCommitSha;
+    const nextDeliveryPrUrl =
+      patch.deliveryPrUrl !== undefined ? trimOptionalString(patch.deliveryPrUrl) : existing.deliveryPrUrl;
+
+    if (nextExternalRequesterId && nextStatus === "done" && !nextCustomerResolutionSummary) {
+      throw unprocessable("Customer-facing issues require customerResolutionSummary before done");
+    }
+
+    if (nextDeliveryBranch || nextDeliveryCommitSha || nextDeliveryPrUrl) {
+      if (!nextProjectId) {
+        throw unprocessable("Delivery metadata requires a project with a primary workspace");
+      }
+      const project = await projectsSvc.getById(nextProjectId);
+      if (!project?.primaryWorkspace?.cwd) {
+        throw unprocessable("Delivery metadata requires the project to have a primary workspace cwd");
+      }
+    }
   }
 
   async function assertAgentRunCheckoutOwnership(
@@ -428,6 +472,14 @@ export function issueRoutes(db: Db, storage: StorageService) {
     if (hiddenAtRaw !== undefined) {
       updateFields.hiddenAt = hiddenAtRaw ? new Date(hiddenAtRaw) : null;
     }
+    await assertCustomerIssuePatch(existing, updateFields);
+    if (
+      existing.externalRequesterId &&
+      updateFields.status === "done" &&
+      updateFields.customerVisibleStatus === undefined
+    ) {
+      updateFields.customerVisibleStatus = "resolved";
+    }
     let issue;
     try {
       issue = await svc.update(id, updateFields);
@@ -505,6 +557,10 @@ export function issueRoutes(db: Db, storage: StorageService) {
         },
       });
 
+    }
+
+    if (existing.status !== "done" && issue.status === "done" && issue.externalRequesterId) {
+      await customerIntake.notifyIssueResolved(issue.id);
     }
 
     const assigneeChanged = assigneeWillChange;
@@ -735,7 +791,10 @@ export function issueRoutes(db: Db, storage: StorageService) {
     let currentIssue = issue;
 
     if (reopenRequested && isClosed) {
-      const reopenedIssue = await svc.update(id, { status: "todo" });
+      const reopenPatch = issue.externalRequesterId
+        ? await customerIntake.buildCustomerReopenPatch(id)
+        : { status: "todo" as const };
+      const reopenedIssue = await svc.update(id, reopenPatch ?? { status: "todo" });
       if (!reopenedIssue) {
         res.status(404).json({ error: "Issue not found" });
         return;

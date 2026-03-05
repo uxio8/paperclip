@@ -116,11 +116,14 @@ export function NewGoalDialog() {
     >
       <DialogContent
         showCloseButton={false}
-        className={cn("p-0 gap-0", expanded ? "sm:max-w-2xl" : "sm:max-w-lg")}
+        className={cn(
+          "p-0 gap-0 flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden",
+          expanded ? "h-[calc(100dvh-2rem)] sm:max-w-2xl" : "sm:max-w-lg",
+        )}
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {selectedCompany && (
               <span className="bg-muted px-1.5 py-0.5 rounded text-xs font-medium">
@@ -150,124 +153,126 @@ export function NewGoalDialog() {
           </div>
         </div>
 
-        {/* Title */}
-        <div className="px-4 pt-4 pb-2 shrink-0">
-          <input
-            className="w-full text-lg font-semibold bg-transparent outline-none placeholder:text-muted-foreground/50"
-            placeholder="Goal title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Tab" && !e.shiftKey) {
-                e.preventDefault();
-                descriptionEditorRef.current?.focus();
-              }
-            }}
-            autoFocus
-          />
-        </div>
+        <div className="min-h-0 overflow-y-auto">
+          {/* Title */}
+          <div className="px-4 pt-4 pb-2 shrink-0">
+            <input
+              className="w-full text-lg font-semibold bg-transparent outline-none placeholder:text-muted-foreground/50"
+              placeholder="Goal title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Tab" && !e.shiftKey) {
+                  e.preventDefault();
+                  descriptionEditorRef.current?.focus();
+                }
+              }}
+              autoFocus
+            />
+          </div>
 
-        {/* Description */}
-        <div className="px-4 pb-2">
-          <MarkdownEditor
-            ref={descriptionEditorRef}
-            value={description}
-            onChange={setDescription}
-            placeholder="Add description..."
-            bordered={false}
-            contentClassName={cn("text-sm text-muted-foreground", expanded ? "min-h-[220px]" : "min-h-[120px]")}
-            imageUploadHandler={async (file) => {
-              const asset = await uploadDescriptionImage.mutateAsync(file);
-              return asset.contentPath;
-            }}
-          />
-        </div>
+          {/* Description */}
+          <div className="px-4 pb-2">
+            <MarkdownEditor
+              ref={descriptionEditorRef}
+              value={description}
+              onChange={setDescription}
+              placeholder="Add description..."
+              bordered={false}
+              contentClassName={cn("text-sm text-muted-foreground", expanded ? "min-h-[220px]" : "min-h-[120px]")}
+              imageUploadHandler={async (file) => {
+                const asset = await uploadDescriptionImage.mutateAsync(file);
+                return asset.contentPath;
+              }}
+            />
+          </div>
 
-        {/* Property chips */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-t border-border flex-wrap">
-          {/* Status */}
-          <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-            <PopoverTrigger asChild>
-              <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
-                <StatusBadge status={status} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-40 p-1" align="start">
-              {GOAL_STATUSES.map((s) => (
-                <button
-                  key={s}
-                  className={cn(
-                    "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 capitalize",
-                    s === status && "bg-accent"
-                  )}
-                  onClick={() => { setStatus(s); setStatusOpen(false); }}
-                >
-                  {s}
+          {/* Property chips */}
+          <div className="flex items-center gap-1.5 px-4 py-2 border-t border-border flex-wrap">
+            {/* Status */}
+            <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
+                  <StatusBadge status={status} />
                 </button>
-              ))}
-            </PopoverContent>
-          </Popover>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-1" align="start">
+                {GOAL_STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 capitalize",
+                      s === status && "bg-accent"
+                    )}
+                    onClick={() => { setStatus(s); setStatusOpen(false); }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
 
-          {/* Level */}
-          <Popover open={levelOpen} onOpenChange={setLevelOpen}>
-            <PopoverTrigger asChild>
-              <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
-                <Layers className="h-3 w-3 text-muted-foreground" />
-                {levelLabels[level] ?? level}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-40 p-1" align="start">
-              {GOAL_LEVELS.map((l) => (
+            {/* Level */}
+            <Popover open={levelOpen} onOpenChange={setLevelOpen}>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
+                  <Layers className="h-3 w-3 text-muted-foreground" />
+                  {levelLabels[level] ?? level}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-1" align="start">
+                {GOAL_LEVELS.map((l) => (
+                  <button
+                    key={l}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
+                      l === level && "bg-accent"
+                    )}
+                    onClick={() => { setLevel(l); setLevelOpen(false); }}
+                  >
+                    {levelLabels[l] ?? l}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+
+            {/* Parent goal */}
+            <Popover open={parentOpen} onOpenChange={setParentOpen}>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
+                  <Target className="h-3 w-3 text-muted-foreground" />
+                  {currentParent ? currentParent.title : "Parent goal"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-1" align="start">
                 <button
-                  key={l}
                   className={cn(
                     "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
-                    l === level && "bg-accent"
+                    !appliedParentId && "bg-accent"
                   )}
-                  onClick={() => { setLevel(l); setLevelOpen(false); }}
+                  onClick={() => { setParentId(""); setParentOpen(false); }}
                 >
-                  {levelLabels[l] ?? l}
+                  No parent
                 </button>
-              ))}
-            </PopoverContent>
-          </Popover>
-
-          {/* Parent goal */}
-          <Popover open={parentOpen} onOpenChange={setParentOpen}>
-            <PopoverTrigger asChild>
-              <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
-                <Target className="h-3 w-3 text-muted-foreground" />
-                {currentParent ? currentParent.title : "Parent goal"}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-1" align="start">
-              <button
-                className={cn(
-                  "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
-                  !appliedParentId && "bg-accent"
-                )}
-                onClick={() => { setParentId(""); setParentOpen(false); }}
-              >
-                No parent
-              </button>
-              {(goals ?? []).map((g) => (
-                <button
-                  key={g.id}
-                  className={cn(
-                    "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 truncate",
-                    g.id === appliedParentId && "bg-accent"
-                  )}
-                  onClick={() => { setParentId(g.id); setParentOpen(false); }}
-                >
-                  {g.title}
-                </button>
-              ))}
-            </PopoverContent>
-          </Popover>
+                {(goals ?? []).map((g) => (
+                  <button
+                    key={g.id}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 truncate",
+                      g.id === appliedParentId && "bg-accent"
+                    )}
+                    onClick={() => { setParentId(g.id); setParentOpen(false); }}
+                  >
+                    {g.title}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end px-4 py-2.5 border-t border-border">
+        <div className="flex shrink-0 items-center justify-end border-t border-border px-4 py-2.5">
           <Button
             size="sm"
             disabled={!title.trim() || createGoal.isPending}

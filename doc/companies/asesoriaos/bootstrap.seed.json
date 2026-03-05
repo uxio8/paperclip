@@ -1,0 +1,612 @@
+{
+  "version": 1,
+  "company": {
+    "name": "AsesoriaOS",
+    "description": "AI-native operating system for Spanish advisory firms, starting with fiscal and accounting workflows for autonomos and micro-SL companies.",
+    "brandColor": "#0F766E",
+    "budgetMonthlyCents": 70000,
+    "requireBoardApprovalForNewAgents": true
+  },
+  "workspaceRootRelative": "worktrees",
+  "agents": [
+    {
+      "slug": "alicia-founder",
+      "name": "Alicia Founder",
+      "role": "ceo",
+      "title": "CEO / Founder",
+      "reportsToSlug": null,
+      "capabilities": "Translate the company mission into concrete goals, staffing, priorities, and approval packages while keeping the wedge narrow and auditable.",
+      "instructionsPath": "agents/ceo-founder.md",
+      "adapterType": "codex_local",
+      "budgetMonthlyCents": 12000,
+      "permissions": {
+        "canCreateAgents": true
+      },
+      "adapterConfig": {
+        "model": "gpt-5.4",
+        "dangerouslyBypassApprovalsAndSandbox": true,
+        "search": true,
+        "timeoutSec": 1800,
+        "graceSec": 30
+      },
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 3600,
+          "wakeOnDemand": true,
+          "cooldownSec": 10,
+          "maxConcurrentRuns": 1
+        }
+      }
+    },
+    {
+      "slug": "bruno-platform",
+      "name": "Bruno Platform",
+      "role": "cto",
+      "title": "CTO / Platform Architect",
+      "reportsToSlug": "alicia-founder",
+      "capabilities": "Own system boundaries, data and event contracts, security assumptions, and technical sequencing across product, AI, and integrations.",
+      "instructionsPath": "agents/cto-platform-architect.md",
+      "adapterType": "codex_local",
+      "budgetMonthlyCents": 18000,
+      "permissions": {
+        "canCreateAgents": false
+      },
+      "adapterConfig": {
+        "model": "gpt-5.4",
+        "dangerouslyBypassApprovalsAndSandbox": true,
+        "search": true,
+        "timeoutSec": 1800,
+        "graceSec": 30
+      },
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 1800,
+          "wakeOnDemand": true,
+          "cooldownSec": 10,
+          "maxConcurrentRuns": 1
+        }
+      }
+    },
+    {
+      "slug": "clara-product",
+      "name": "Clara Product",
+      "role": "pm",
+      "title": "Product & UX Lead",
+      "reportsToSlug": "alicia-founder",
+      "capabilities": "Design operator workflows, client-facing simplicity, and explainable automation UX for non-technical advisory operators.",
+      "instructionsPath": "agents/product-ux-lead.md",
+      "adapterType": "codex_local",
+      "budgetMonthlyCents": 9000,
+      "permissions": {
+        "canCreateAgents": false
+      },
+      "adapterConfig": {
+        "model": "gpt-5.4",
+        "dangerouslyBypassApprovalsAndSandbox": true,
+        "search": true,
+        "timeoutSec": 1800,
+        "graceSec": 30
+      },
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 1800,
+          "wakeOnDemand": true,
+          "cooldownSec": 10,
+          "maxConcurrentRuns": 1
+        }
+      }
+    },
+    {
+      "slug": "diego-fiscal",
+      "name": "Diego Fiscal",
+      "role": "researcher",
+      "title": "Fiscal Domain Lead",
+      "reportsToSlug": "alicia-founder",
+      "capabilities": "Define fiscal and accounting workflow rules, automation boundaries, edge cases, and human-review points for autonomos and micro-SL companies.",
+      "instructionsPath": "agents/fiscal-domain-lead.md",
+      "adapterType": "codex_local",
+      "budgetMonthlyCents": 10000,
+      "permissions": {
+        "canCreateAgents": false
+      },
+      "adapterConfig": {
+        "model": "gpt-5.4",
+        "dangerouslyBypassApprovalsAndSandbox": true,
+        "search": true,
+        "timeoutSec": 1800,
+        "graceSec": 30
+      },
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 1800,
+          "wakeOnDemand": true,
+          "cooldownSec": 10,
+          "maxConcurrentRuns": 1
+        }
+      }
+    },
+    {
+      "slug": "elena-workflow",
+      "name": "Elena Workflow",
+      "role": "engineer",
+      "title": "AI Workflow Engineer",
+      "reportsToSlug": "bruno-platform",
+      "capabilities": "Turn advisory workflows into typed, reviewable, dry-run-first agent workflows with explicit handoffs and auditability.",
+      "instructionsPath": "agents/ai-workflow-engineer.md",
+      "adapterType": "codex_local",
+      "budgetMonthlyCents": 15000,
+      "permissions": {
+        "canCreateAgents": false
+      },
+      "adapterConfig": {
+        "model": "gpt-5.4",
+        "dangerouslyBypassApprovalsAndSandbox": true,
+        "search": true,
+        "timeoutSec": 1800,
+        "graceSec": 30
+      },
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 1800,
+          "wakeOnDemand": true,
+          "cooldownSec": 10,
+          "maxConcurrentRuns": 1
+        }
+      }
+    },
+    {
+      "slug": "fabio-audit",
+      "name": "Fabio Audit",
+      "role": "qa",
+      "title": "QA & Audit Lead",
+      "reportsToSlug": "bruno-platform",
+      "capabilities": "Own golden datasets, release evidence, regression quality, and audit-readiness for risky fiscal and accounting flows.",
+      "instructionsPath": "agents/qa-audit-lead.md",
+      "adapterType": "codex_local",
+      "budgetMonthlyCents": 6000,
+      "permissions": {
+        "canCreateAgents": false
+      },
+      "adapterConfig": {
+        "model": "gpt-5.4",
+        "dangerouslyBypassApprovalsAndSandbox": true,
+        "search": true,
+        "timeoutSec": 1800,
+        "graceSec": 30
+      },
+      "runtimeConfig": {
+        "heartbeat": {
+          "enabled": true,
+          "intervalSec": 1800,
+          "wakeOnDemand": true,
+          "cooldownSec": 10,
+          "maxConcurrentRuns": 1
+        }
+      }
+    }
+  ],
+  "goals": [
+    {
+      "key": "company-mvp",
+      "title": "Deliver by June 3, 2026 a Spain-only MVP for advisory firms that automates document intake, accounting normalization, and VAT-support workflows for autonomos and micro-SL companies, with human review, end-to-end auditability, and a dual UI plus agent-native interface.",
+      "description": "The first release must be Spain-only, fiscal and accounting first, human-reviewed for regulated flows, and explainable to non-technical operators.",
+      "level": "company",
+      "status": "active",
+      "parentKey": null,
+      "ownerAgentSlug": "alicia-founder"
+    },
+    {
+      "key": "platform-goal",
+      "title": "Define the canonical API, workflow, and audit model",
+      "description": "A shared contract for board UI, operator UI, and agent-native automation.",
+      "level": "team",
+      "status": "active",
+      "parentKey": "company-mvp",
+      "ownerAgentSlug": "bruno-platform"
+    },
+    {
+      "key": "operator-ux-goal",
+      "title": "Make every automation understandable to a non-technical advisory operator",
+      "description": "Status, exceptions, confidence, and required actions must always be visible.",
+      "level": "team",
+      "status": "active",
+      "parentKey": "company-mvp",
+      "ownerAgentSlug": "clara-product"
+    },
+    {
+      "key": "fiscal-goal",
+      "title": "Specify correct accounting and VAT-support workflows for autonomos and micro-SL",
+      "description": "Start with repeatable monthly and quarterly workflows, not payroll or mercantile expansion.",
+      "level": "team",
+      "status": "active",
+      "parentKey": "company-mvp",
+      "ownerAgentSlug": "diego-fiscal"
+    },
+    {
+      "key": "agent-action-goal",
+      "title": "Expose typed, dry-run-first actions for AI-native operation",
+      "description": "Agent actions must be explicit, typed, reviewable, and approval-aware.",
+      "level": "team",
+      "status": "active",
+      "parentKey": "company-mvp",
+      "ownerAgentSlug": "elena-workflow"
+    },
+    {
+      "key": "quality-goal",
+      "title": "Require evidence bundles and replayable audit trails for risky flows",
+      "description": "Every risky workflow should have a deterministic audit trail and release gate evidence.",
+      "level": "team",
+      "status": "active",
+      "parentKey": "company-mvp",
+      "ownerAgentSlug": "fabio-audit"
+    }
+  ],
+  "projects": [
+    {
+      "key": "operating-plan",
+      "name": "operating-plan",
+      "description": "Strategy, staffing, sequencing, approval packages, and board-facing decision memos.",
+      "status": "planned",
+      "color": "#0F766E",
+      "leadAgentSlug": "alicia-founder",
+      "goalKeys": [
+        "company-mvp"
+      ],
+      "workspace": {
+        "name": "operating-plan",
+        "cwdRelative": "operating-plan",
+        "isPrimary": true
+      }
+    },
+    {
+      "key": "platform-core",
+      "name": "platform-core",
+      "description": "API, tenancy, workflow state, event model, and audit architecture.",
+      "status": "planned",
+      "color": "#0EA5E9",
+      "leadAgentSlug": "bruno-platform",
+      "goalKeys": [
+        "platform-goal"
+      ],
+      "workspace": {
+        "name": "platform-core",
+        "cwdRelative": "platform-core",
+        "isPrimary": true
+      }
+    },
+    {
+      "key": "operator-experience",
+      "name": "operator-experience",
+      "description": "Operator and client-facing flows for intake, review, explanations, and exception handling.",
+      "status": "planned",
+      "color": "#F97316",
+      "leadAgentSlug": "clara-product",
+      "goalKeys": [
+        "operator-ux-goal"
+      ],
+      "workspace": {
+        "name": "operator-experience",
+        "cwdRelative": "operator-experience",
+        "isPrimary": true
+      }
+    },
+    {
+      "key": "fiscal-domain-model",
+      "name": "fiscal-domain-model",
+      "description": "Accounting normalization rules, VAT logic, obligations, and exception handling.",
+      "status": "planned",
+      "color": "#DC2626",
+      "leadAgentSlug": "diego-fiscal",
+      "goalKeys": [
+        "fiscal-goal"
+      ],
+      "workspace": {
+        "name": "fiscal-domain-model",
+        "cwdRelative": "fiscal-domain-model",
+        "isPrimary": true
+      }
+    },
+    {
+      "key": "agent-action-layer",
+      "name": "agent-action-layer",
+      "description": "Typed tools, dry-run semantics, approval handoffs, and explainable action execution.",
+      "status": "planned",
+      "color": "#7C3AED",
+      "leadAgentSlug": "elena-workflow",
+      "goalKeys": [
+        "agent-action-goal"
+      ],
+      "workspace": {
+        "name": "agent-action-layer",
+        "cwdRelative": "agent-action-layer",
+        "isPrimary": true
+      }
+    },
+    {
+      "key": "quality-audit",
+      "name": "quality-audit",
+      "description": "Golden datasets, release gates, audit bundles, and regression evidence.",
+      "status": "planned",
+      "color": "#EAB308",
+      "leadAgentSlug": "fabio-audit",
+      "goalKeys": [
+        "quality-goal"
+      ],
+      "workspace": {
+        "name": "quality-audit",
+        "cwdRelative": "quality-audit",
+        "isPrimary": true
+      }
+    }
+  ],
+  "labels": [
+    { "name": "phase:p0", "color": "#DC2626" },
+    { "name": "phase:p1", "color": "#F97316" },
+    { "name": "surface:web", "color": "#2563EB" },
+    { "name": "surface:api", "color": "#0891B2" },
+    { "name": "surface:agent", "color": "#7C3AED" },
+    { "name": "domain:fiscal", "color": "#B91C1C" },
+    { "name": "domain:audit", "color": "#A16207" },
+    { "name": "domain:compliance", "color": "#4F46E5" },
+    { "name": "risk:regulated", "color": "#991B1B" },
+    { "name": "artifact:spec", "color": "#0F766E" },
+    { "name": "artifact:implementation", "color": "#475569" },
+    { "name": "state:board-review", "color": "#BE185D" }
+  ],
+  "issues": [
+    {
+      "key": "approve-operating-plan",
+      "title": "Approve 90-day operating plan and budget split",
+      "description": "Produce the CEO operating memo for March 5, 2026 through June 3, 2026, including budget split, phase 1 focus, phase 2 hires, risks, and board approval asks. This issue exists to anchor the initial approve_ceo_strategy request.",
+      "projectKey": "operating-plan",
+      "goalKey": "company-mvp",
+      "assigneeSlug": "alicia-founder",
+      "status": "backlog",
+      "priority": "critical",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "artifact:spec",
+        "state:board-review"
+      ]
+    },
+    {
+      "key": "canonical-platform-architecture",
+      "title": "Define canonical platform architecture for AsesoriaOS",
+      "description": "Specify the entity, event, workflow, audit, and action architecture for the Spain-first advisory product. Keep multi-tenant isolation strict and design the API first for humans and agents.",
+      "projectKey": "platform-core",
+      "goalKey": "platform-goal",
+      "assigneeSlug": "bruno-platform",
+      "status": "backlog",
+      "priority": "critical",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "surface:api",
+        "artifact:spec"
+      ]
+    },
+    {
+      "key": "fiscal-operating-model",
+      "title": "Define fiscal operating model for autonomos and micro-SL",
+      "description": "Describe the document-to-ledger and VAT-support workflows for the first wedge, including edge cases, exception handling, and human review checkpoints.",
+      "projectKey": "fiscal-domain-model",
+      "goalKey": "fiscal-goal",
+      "assigneeSlug": "diego-fiscal",
+      "status": "backlog",
+      "priority": "critical",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "domain:fiscal",
+        "artifact:spec"
+      ]
+    },
+    {
+      "key": "typed-agent-action-layer",
+      "title": "Specify typed agent action layer with dry-run semantics",
+      "description": "Define read, simulate, propose, and commit tool classes with typed inputs and outputs, approval semantics, rollback expectations, and audit fields.",
+      "projectKey": "agent-action-layer",
+      "goalKey": "agent-action-goal",
+      "assigneeSlug": "elena-workflow",
+      "status": "backlog",
+      "priority": "critical",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "surface:agent",
+        "artifact:spec"
+      ]
+    },
+    {
+      "key": "qa-audit-baseline",
+      "title": "Define QA baseline, golden datasets, and evidence bundle standard",
+      "description": "Create the release gates, test corpus, golden datasets, audit bundle checklist, and sign-off policy for risky fiscal and accounting workflows.",
+      "projectKey": "quality-audit",
+      "goalKey": "quality-goal",
+      "assigneeSlug": "fabio-audit",
+      "status": "backlog",
+      "priority": "critical",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "domain:audit",
+        "artifact:spec"
+      ]
+    },
+    {
+      "key": "operator-review-cockpit",
+      "title": "Specify operator workspace and human-review cockpit v1",
+      "description": "Design the operator-facing information architecture, review states, confidence surfaces, explanations, and exception handling flows for non-technical advisory staff.",
+      "projectKey": "operator-experience",
+      "goalKey": "operator-ux-goal",
+      "assigneeSlug": "clara-product",
+      "status": "backlog",
+      "priority": "high",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "surface:web",
+        "artifact:spec"
+      ]
+    },
+    {
+      "key": "client-intake-flow",
+      "title": "Specify client intake and document classification flow",
+      "description": "Define the document upload, OCR review, evidence visibility, and exception routing flow that clients and operators will use before any accounting normalization occurs.",
+      "projectKey": "operator-experience",
+      "goalKey": "operator-ux-goal",
+      "assigneeSlug": "clara-product",
+      "status": "backlog",
+      "priority": "high",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "surface:web",
+        "artifact:spec"
+      ]
+    },
+    {
+      "key": "mvp-data-contracts",
+      "title": "Define MVP data contracts for clients, obligations, evidence bundles, and workflow runs",
+      "description": "Create the shared data contracts for client accounts, obligations, evidence bundles, workflow runs, and approval-aware action requests.",
+      "projectKey": "platform-core",
+      "goalKey": "platform-goal",
+      "assigneeSlug": "bruno-platform",
+      "status": "backlog",
+      "priority": "high",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "surface:api",
+        "artifact:implementation"
+      ]
+    },
+    {
+      "key": "vat-support-workflow",
+      "title": "Define VAT-support workflow for quarterly and monthly periods",
+      "description": "Specify obligations, checkpoints, exception catalog, and expected outputs for the VAT-support workflow across monthly and quarterly reporting periods.",
+      "projectKey": "fiscal-domain-model",
+      "goalKey": "fiscal-goal",
+      "assigneeSlug": "diego-fiscal",
+      "status": "backlog",
+      "priority": "high",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "domain:fiscal",
+        "risk:regulated"
+      ]
+    },
+    {
+      "key": "explainable-approval-ux",
+      "title": "Prototype explainable action requests and approval UX",
+      "description": "Design the diff views, refusal behavior, approval payloads, and operator explanations for regulated or high-risk action requests.",
+      "projectKey": "agent-action-layer",
+      "goalKey": "agent-action-goal",
+      "assigneeSlug": "elena-workflow",
+      "status": "backlog",
+      "priority": "high",
+      "billingCode": "ASE-MVP-P0",
+      "labels": [
+        "phase:p0",
+        "surface:agent",
+        "risk:regulated"
+      ]
+    },
+    {
+      "key": "regulatory-control-matrix",
+      "title": "Define regulatory control matrix for fiscal-impacting logic",
+      "description": "Prepare the control matrix for logic changes that affect fiscal outcomes, retention, privacy, and live side effects. This issue is intentionally blocked until the compliance lead is hired.",
+      "projectKey": null,
+      "goalKey": "company-mvp",
+      "assigneeSlug": null,
+      "status": "blocked",
+      "priority": "critical",
+      "billingCode": "ASE-MVP-P1",
+      "labels": [
+        "phase:p1",
+        "domain:compliance",
+        "risk:regulated"
+      ]
+    },
+    {
+      "key": "integration-matrix",
+      "title": "Define AEAT/TGSS/banking/signature mock-first integration matrix",
+      "description": "Document the read-only and side-effecting capabilities, authentication assumptions, mock strategy, and risk controls for AEAT, TGSS, banking, and signature connectors. Blocked until the integrations lead is hired.",
+      "projectKey": null,
+      "goalKey": "company-mvp",
+      "assigneeSlug": null,
+      "status": "blocked",
+      "priority": "high",
+      "billingCode": "ASE-MVP-P1",
+      "labels": [
+        "phase:p1",
+        "surface:api",
+        "risk:regulated"
+      ]
+    },
+    {
+      "key": "pilot-discovery-package",
+      "title": "Prepare pilot ICP and interview package for Spanish advisory firms",
+      "description": "Define the pilot ICP, interview guide, qualification rubric, and operator language feedback loop for Spanish advisory firms. Blocked until the discovery lead is hired.",
+      "projectKey": null,
+      "goalKey": "company-mvp",
+      "assigneeSlug": null,
+      "status": "blocked",
+      "priority": "medium",
+      "billingCode": "ASE-MVP-P1",
+      "labels": [
+        "phase:p1",
+        "artifact:spec"
+      ]
+    }
+  ],
+  "approval": {
+    "templateId": "asesoriaos-bootstrap-v1",
+    "type": "approve_ceo_strategy",
+    "requestedByAgentSlug": "alicia-founder",
+    "linkIssueKey": "approve-operating-plan",
+    "payload": {
+      "templateId": "asesoriaos-bootstrap-v1",
+      "companyGoal": "Deliver June 3, 2026 MVP for Spanish advisory firms",
+      "window": {
+        "from": "2026-03-05",
+        "to": "2026-06-03"
+      },
+      "budgetMonthlyCents": 70000,
+      "phase1Agents": [
+        "CEO / Founder",
+        "CTO / Platform Architect",
+        "Product & UX Lead",
+        "Fiscal Domain Lead",
+        "AI Workflow Engineer",
+        "QA & Audit Lead"
+      ],
+      "phase2Hires": [
+        "Chief Compliance & Risk",
+        "Integrations Engineer",
+        "Customer Discovery & Partnerships"
+      ],
+      "projects": [
+        "operating-plan",
+        "platform-core",
+        "operator-experience",
+        "fiscal-domain-model",
+        "agent-action-layer",
+        "quality-audit"
+      ],
+      "guardrails": [
+        "Spain only",
+        "Fiscal and accounting first",
+        "Human review for regulated actions",
+        "Mock-first external integrations"
+      ]
+    }
+  }
+}

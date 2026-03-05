@@ -56,6 +56,17 @@ export {
 } from "./project.js";
 
 export {
+  createInboundChannelSchema,
+  updateInboundChannelSchema,
+  inboundWhatsAppWebhookSchema,
+  updateCustomerVisibleStatusSchema,
+  type CreateInboundChannel,
+  type UpdateInboundChannel,
+  type InboundWhatsAppWebhook,
+  type UpdateCustomerVisibleStatus,
+} from "./customer-intake.js";
+
+export {
   createIssueSchema,
   createIssueLabelSchema,
   updateIssueSchema,

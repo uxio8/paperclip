@@ -29,6 +29,11 @@ export const queryKeys = {
     liveRuns: (issueId: string) => ["issues", "live-runs", issueId] as const,
     activeRun: (issueId: string) => ["issues", "active-run", issueId] as const,
   },
+  customerIntake: {
+    channels: (companyId: string) => ["customer-intake", "channels", companyId] as const,
+    issueThread: (issueId: string) => ["customer-intake", "issue-thread", issueId] as const,
+    thread: (threadId: string) => ["customer-intake", "thread", threadId] as const,
+  },
   projects: {
     list: (companyId: string) => ["projects", companyId] as const,
     detail: (id: string) => ["projects", "detail", id] as const,

@@ -214,11 +214,14 @@ export function NewProjectDialog() {
     >
       <DialogContent
         showCloseButton={false}
-        className={cn("p-0 gap-0", expanded ? "sm:max-w-2xl" : "sm:max-w-lg")}
+        className={cn(
+          "p-0 gap-0 flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden",
+          expanded ? "h-[calc(100dvh-2rem)] sm:max-w-2xl" : "sm:max-w-lg",
+        )}
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {selectedCompany && (
               <span className="bg-muted px-1.5 py-0.5 rounded text-xs font-medium">
@@ -248,216 +251,218 @@ export function NewProjectDialog() {
           </div>
         </div>
 
-        {/* Name */}
-        <div className="px-4 pt-4 pb-2 shrink-0">
-          <input
-            className="w-full text-lg font-semibold bg-transparent outline-none placeholder:text-muted-foreground/50"
-            placeholder="Project name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Tab" && !e.shiftKey) {
-                e.preventDefault();
-                descriptionEditorRef.current?.focus();
-              }
-            }}
-            autoFocus
-          />
-        </div>
-
-        {/* Description */}
-        <div className="px-4 pb-2">
-          <MarkdownEditor
-            ref={descriptionEditorRef}
-            value={description}
-            onChange={setDescription}
-            placeholder="Add description..."
-            bordered={false}
-            contentClassName={cn("text-sm text-muted-foreground", expanded ? "min-h-[220px]" : "min-h-[120px]")}
-            imageUploadHandler={async (file) => {
-              const asset = await uploadDescriptionImage.mutateAsync(file);
-              return asset.contentPath;
-            }}
-          />
-        </div>
-
-        <div className="px-4 pb-3 space-y-3 border-t border-border">
-          <div className="pt-3">
-            <p className="text-sm font-medium">Where will work be done on this project?</p>
-            <p className="text-xs text-muted-foreground">Add local folder and/or GitHub repo workspace hints.</p>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <button
-              type="button"
-              className={cn(
-                "rounded-lg border px-3 py-3 text-left transition-colors",
-                workspaceSetup === "local" ? "border-foreground bg-accent/40" : "border-border hover:bg-accent/30",
-              )}
-              onClick={() => toggleWorkspaceSetup("local")}
-            >
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <FolderOpen className="h-4 w-4" />
-                A local folder
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Use a full path on this machine.</p>
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "rounded-lg border px-3 py-3 text-left transition-colors",
-                workspaceSetup === "repo" ? "border-foreground bg-accent/40" : "border-border hover:bg-accent/30",
-              )}
-              onClick={() => toggleWorkspaceSetup("repo")}
-            >
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Github className="h-4 w-4" />
-                A github repo
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Paste a GitHub URL.</p>
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "rounded-lg border px-3 py-3 text-left transition-colors",
-                workspaceSetup === "both" ? "border-foreground bg-accent/40" : "border-border hover:bg-accent/30",
-              )}
-              onClick={() => toggleWorkspaceSetup("both")}
-            >
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <GitBranch className="h-4 w-4" />
-                Both
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">Configure local + repo hints.</p>
-            </button>
+        <div className="min-h-0 overflow-y-auto">
+          {/* Name */}
+          <div className="px-4 pt-4 pb-2 shrink-0">
+            <input
+              className="w-full text-lg font-semibold bg-transparent outline-none placeholder:text-muted-foreground/50"
+              placeholder="Project name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Tab" && !e.shiftKey) {
+                  e.preventDefault();
+                  descriptionEditorRef.current?.focus();
+                }
+              }}
+              autoFocus
+            />
           </div>
 
-          {(workspaceSetup === "local" || workspaceSetup === "both") && (
-            <div className="rounded-md border border-border p-2">
-              <label className="mb-1 block text-xs text-muted-foreground">Local folder (full path)</label>
-              <div className="flex items-center gap-2">
-                <input
-                  className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs font-mono outline-none"
-                  value={workspaceLocalPath}
-                  onChange={(e) => setWorkspaceLocalPath(e.target.value)}
-                  placeholder="/absolute/path/to/workspace"
-                />
-                <ChoosePathButton />
-              </div>
+          {/* Description */}
+          <div className="px-4 pb-2">
+            <MarkdownEditor
+              ref={descriptionEditorRef}
+              value={description}
+              onChange={setDescription}
+              placeholder="Add description..."
+              bordered={false}
+              contentClassName={cn("text-sm text-muted-foreground", expanded ? "min-h-[220px]" : "min-h-[120px]")}
+              imageUploadHandler={async (file) => {
+                const asset = await uploadDescriptionImage.mutateAsync(file);
+                return asset.contentPath;
+              }}
+            />
+          </div>
+
+          <div className="px-4 pb-3 space-y-3 border-t border-border">
+            <div className="pt-3">
+              <p className="text-sm font-medium">Where will work be done on this project?</p>
+              <p className="text-xs text-muted-foreground">Add local folder and/or GitHub repo workspace hints.</p>
             </div>
-          )}
-          {(workspaceSetup === "repo" || workspaceSetup === "both") && (
-            <div className="rounded-md border border-border p-2">
-              <label className="mb-1 block text-xs text-muted-foreground">GitHub repo URL</label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                className={cn(
+                  "rounded-lg border px-3 py-3 text-left transition-colors",
+                  workspaceSetup === "local" ? "border-foreground bg-accent/40" : "border-border hover:bg-accent/30",
+                )}
+                onClick={() => toggleWorkspaceSetup("local")}
+              >
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <FolderOpen className="h-4 w-4" />
+                  A local folder
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Use a full path on this machine.</p>
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-lg border px-3 py-3 text-left transition-colors",
+                  workspaceSetup === "repo" ? "border-foreground bg-accent/40" : "border-border hover:bg-accent/30",
+                )}
+                onClick={() => toggleWorkspaceSetup("repo")}
+              >
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Github className="h-4 w-4" />
+                  A github repo
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Paste a GitHub URL.</p>
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-lg border px-3 py-3 text-left transition-colors",
+                  workspaceSetup === "both" ? "border-foreground bg-accent/40" : "border-border hover:bg-accent/30",
+                )}
+                onClick={() => toggleWorkspaceSetup("both")}
+              >
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <GitBranch className="h-4 w-4" />
+                  Both
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Configure local + repo hints.</p>
+              </button>
+            </div>
+
+            {(workspaceSetup === "local" || workspaceSetup === "both") && (
+              <div className="rounded-md border border-border p-2">
+                <label className="mb-1 block text-xs text-muted-foreground">Local folder (full path)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs font-mono outline-none"
+                    value={workspaceLocalPath}
+                    onChange={(e) => setWorkspaceLocalPath(e.target.value)}
+                    placeholder="/absolute/path/to/workspace"
+                  />
+                  <ChoosePathButton />
+                </div>
+              </div>
+            )}
+            {(workspaceSetup === "repo" || workspaceSetup === "both") && (
+              <div className="rounded-md border border-border p-2">
+                <label className="mb-1 block text-xs text-muted-foreground">GitHub repo URL</label>
+                <input
+                  className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs outline-none"
+                  value={workspaceRepoUrl}
+                  onChange={(e) => setWorkspaceRepoUrl(e.target.value)}
+                  placeholder="https://github.com/org/repo"
+                />
+              </div>
+            )}
+            {workspaceError && (
+              <p className="text-xs text-destructive">{workspaceError}</p>
+            )}
+          </div>
+
+          {/* Property chips */}
+          <div className="flex items-center gap-1.5 px-4 py-2 border-t border-border flex-wrap">
+            {/* Status */}
+            <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
+                  <StatusBadge status={status} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 p-1" align="start">
+                {projectStatuses.map((s) => (
+                  <button
+                    key={s.value}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
+                      s.value === status && "bg-accent"
+                    )}
+                    onClick={() => { setStatus(s.value); setStatusOpen(false); }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+
+            {selectedGoals.map((goal) => (
+              <span
+                key={goal.id}
+                className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs"
+              >
+                <Target className="h-3 w-3 text-muted-foreground" />
+                <span className="max-w-[160px] truncate">{goal.title}</span>
+                <button
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => setGoalIds((prev) => prev.filter((id) => id !== goal.id))}
+                  aria-label={`Remove goal ${goal.title}`}
+                  type="button"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+
+            <Popover open={goalOpen} onOpenChange={setGoalOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors disabled:opacity-60"
+                  disabled={selectedGoals.length > 0 && availableGoals.length === 0}
+                >
+                  {selectedGoals.length > 0 ? <Plus className="h-3 w-3 text-muted-foreground" /> : <Target className="h-3 w-3 text-muted-foreground" />}
+                  {selectedGoals.length > 0 ? "+ Goal" : "Goal"}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-1" align="start">
+                {selectedGoals.length === 0 && (
+                  <button
+                    className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground"
+                    onClick={() => setGoalOpen(false)}
+                  >
+                    No goal
+                  </button>
+                )}
+                {availableGoals.map((g) => (
+                  <button
+                    key={g.id}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 truncate"
+                    onClick={() => {
+                      setGoalIds((prev) => [...prev, g.id]);
+                      setGoalOpen(false);
+                    }}
+                  >
+                    {g.title}
+                  </button>
+                ))}
+                {selectedGoals.length > 0 && availableGoals.length === 0 && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                    All goals already selected.
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Target date */}
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs">
+              <Calendar className="h-3 w-3 text-muted-foreground" />
               <input
-                className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs outline-none"
-                value={workspaceRepoUrl}
-                onChange={(e) => setWorkspaceRepoUrl(e.target.value)}
-                placeholder="https://github.com/org/repo"
+                type="date"
+                className="bg-transparent outline-none text-xs w-24"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+                placeholder="Target date"
               />
             </div>
-          )}
-          {workspaceError && (
-            <p className="text-xs text-destructive">{workspaceError}</p>
-          )}
-        </div>
-
-        {/* Property chips */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-t border-border flex-wrap">
-          {/* Status */}
-          <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-            <PopoverTrigger asChild>
-              <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors">
-                <StatusBadge status={status} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-40 p-1" align="start">
-              {projectStatuses.map((s) => (
-                <button
-                  key={s.value}
-                  className={cn(
-                    "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
-                    s.value === status && "bg-accent"
-                  )}
-                  onClick={() => { setStatus(s.value); setStatusOpen(false); }}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </PopoverContent>
-          </Popover>
-
-          {selectedGoals.map((goal) => (
-            <span
-              key={goal.id}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs"
-            >
-              <Target className="h-3 w-3 text-muted-foreground" />
-              <span className="max-w-[160px] truncate">{goal.title}</span>
-              <button
-                className="text-muted-foreground hover:text-foreground"
-                onClick={() => setGoalIds((prev) => prev.filter((id) => id !== goal.id))}
-                aria-label={`Remove goal ${goal.title}`}
-                type="button"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
-
-          <Popover open={goalOpen} onOpenChange={setGoalOpen}>
-            <PopoverTrigger asChild>
-              <button
-                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors disabled:opacity-60"
-                disabled={selectedGoals.length > 0 && availableGoals.length === 0}
-              >
-                {selectedGoals.length > 0 ? <Plus className="h-3 w-3 text-muted-foreground" /> : <Target className="h-3 w-3 text-muted-foreground" />}
-                {selectedGoals.length > 0 ? "+ Goal" : "Goal"}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-1" align="start">
-              {selectedGoals.length === 0 && (
-                <button
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground"
-                  onClick={() => setGoalOpen(false)}
-                >
-                  No goal
-                </button>
-              )}
-              {availableGoals.map((g) => (
-                <button
-                  key={g.id}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 truncate"
-                  onClick={() => {
-                    setGoalIds((prev) => [...prev, g.id]);
-                    setGoalOpen(false);
-                  }}
-                >
-                  {g.title}
-                </button>
-              ))}
-              {selectedGoals.length > 0 && availableGoals.length === 0 && (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                  All goals already selected.
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
-
-          {/* Target date */}
-          <div className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs">
-            <Calendar className="h-3 w-3 text-muted-foreground" />
-            <input
-              type="date"
-              className="bg-transparent outline-none text-xs w-24"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              placeholder="Target date"
-            />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-t border-border">
+        <div className="flex shrink-0 items-center justify-between border-t border-border px-4 py-2.5">
           {createProject.isError ? (
             <p className="text-xs text-destructive">Failed to create project.</p>
           ) : (

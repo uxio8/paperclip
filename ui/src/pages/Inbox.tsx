@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   Clock,
   ArrowUpRight,
+  MessageSquare,
   XCircle,
   UserCheck,
   RotateCcw,
@@ -48,6 +49,7 @@ const ACTIONABLE_APPROVAL_STATUSES = new Set(["pending", "revision_requested"]);
 type InboxTab = "new" | "all";
 type InboxCategoryFilter =
   | "everything"
+  | "customer_intake"
   | "assigned_to_me"
   | "join_requests"
   | "approvals"
@@ -56,12 +58,15 @@ type InboxCategoryFilter =
   | "stale_work";
 type InboxApprovalFilter = "all" | "actionable" | "resolved";
 type SectionKey =
+  | "customer_intake"
   | "assigned_to_me"
   | "join_requests"
   | "approvals"
   | "failed_runs"
   | "alerts"
   | "stale_work";
+
+const CUSTOMER_INTAKE_ISSUE_STATUSES = new Set(["backlog", "todo", "in_progress", "in_review", "blocked"]);
 
 const RUN_SOURCE_LABELS: Record<string, string> = {
   timer: "Scheduled",
@@ -327,6 +332,18 @@ export function Inbox() {
   });
 
   const staleIssues = issues ? getStaleIssues(issues) : [];
+  const customerIntakeIssues = useMemo(
+    () =>
+      [...(issues ?? [])]
+        .filter(
+          (issue) =>
+            Boolean(issue.externalRequesterId) &&
+            issue.customerVisibleStatus === "received" &&
+            CUSTOMER_INTAKE_ISSUE_STATUSES.has(issue.status),
+        )
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [issues],
+  );
   const assignedToMeIssues = useMemo(
     () =>
       [...assignedToMeIssuesRaw].sort(
@@ -442,10 +459,12 @@ export function Inbox() {
     dashboard.costs.monthUtilizationPercent >= 80;
   const hasAlerts = showAggregateAgentError || showBudgetAlert;
   const hasStale = staleIssues.length > 0;
+  const hasCustomerIntake = customerIntakeIssues.length > 0;
   const hasJoinRequests = joinRequests.length > 0;
   const hasAssignedToMe = assignedToMeIssues.length > 0;
 
   const newItemCount =
+    customerIntakeIssues.length +
     assignedToMeIssues.length +
     joinRequests.length +
     actionableApprovals.length +
@@ -456,6 +475,8 @@ export function Inbox() {
 
   const showJoinRequestsCategory =
     allCategoryFilter === "everything" || allCategoryFilter === "join_requests";
+  const showCustomerIntakeCategory =
+    allCategoryFilter === "everything" || allCategoryFilter === "customer_intake";
   const showAssignedCategory =
     allCategoryFilter === "everything" || allCategoryFilter === "assigned_to_me";
   const showApprovalsCategory = allCategoryFilter === "everything" || allCategoryFilter === "approvals";
@@ -465,6 +486,8 @@ export function Inbox() {
   const showStaleCategory = allCategoryFilter === "everything" || allCategoryFilter === "stale_work";
 
   const approvalsToRender = tab === "new" ? actionableApprovals : filteredAllApprovals;
+  const showCustomerIntakeSection =
+    tab === "new" ? hasCustomerIntake : showCustomerIntakeCategory && hasCustomerIntake;
   const showAssignedSection = tab === "new" ? hasAssignedToMe : showAssignedCategory && hasAssignedToMe;
   const showJoinRequestsSection =
     tab === "new" ? hasJoinRequests : showJoinRequestsCategory && hasJoinRequests;
@@ -478,6 +501,7 @@ export function Inbox() {
   const showStaleSection = tab === "new" ? hasStale : showStaleCategory && hasStale;
 
   const visibleSections = [
+    showCustomerIntakeSection ? "customer_intake" : null,
     showAssignedSection ? "assigned_to_me" : null,
     showApprovalsSection ? "approvals" : null,
     showJoinRequestsSection ? "join_requests" : null,
@@ -531,6 +555,7 @@ export function Inbox() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="everything">All categories</SelectItem>
+                <SelectItem value="customer_intake">Customer intake</SelectItem>
                 <SelectItem value="assigned_to_me">Assigned to me</SelectItem>
                 <SelectItem value="join_requests">Join requests</SelectItem>
                 <SelectItem value="approvals">Approvals</SelectItem>
@@ -571,6 +596,43 @@ export function Inbox() {
           icon={InboxIcon}
           message={tab === "new" ? "You're all caught up!" : "No inbox items match these filters."}
         />
+      )}
+
+      {showCustomerIntakeSection && (
+        <>
+          {showSeparatorBefore("customer_intake") && <Separator />}
+          <div>
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Customer Intake
+            </h3>
+            <div className="divide-y divide-border border border-border">
+              {customerIntakeIssues.map((issue) => (
+                <Link
+                  key={issue.id}
+                  to={`/issues/${issue.identifier ?? issue.id}`}
+                  className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/50 no-underline text-inherit"
+                >
+                  <MessageSquare className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <PriorityIcon priority={issue.priority} />
+                  <StatusIcon status={issue.status} />
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {issue.identifier ?? issue.id.slice(0, 8)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm">{issue.title}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      <span>{issue.sourceChannel?.replace(/_/g, " ") ?? "customer thread"}</span>
+                      <span>{issue.customerVisibleStatus?.replace(/_/g, " ") ?? "received"}</span>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    updated {timeAgo(issue.updatedAt)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </>
       )}
 
       {showAssignedSection && (

@@ -26,6 +26,8 @@ The `codex_local` adapter runs OpenAI's Codex CLI locally. It supports session p
 | `graceSec` | number | No | Grace period before force-kill |
 | `dangerouslyBypassApprovalsAndSandbox` | boolean | No | Skip safety checks (dev only) |
 
+Default baseline model: `gpt-5.4`
+
 ## Authentication Modes
 
 Paperclip now resolves Codex auth in this order:
@@ -61,3 +63,17 @@ The environment test checks:
 - Working directory is absolute and available (auto-created if missing and permitted)
 - Authentication readiness via API key, local login, or session pool
 - A live hello probe (`codex exec --json -` with prompt `Respond with hello.`) to verify the CLI can actually run
+
+## GPT-5.4 and Fast Mode
+
+Paperclip now defaults `codex_local` to `gpt-5.4`.
+
+If you authenticate Codex through a ChatGPT-backed local login or session pool, avoid `gpt-5-mini` unless you have verified support on that account type. In current local testing, ChatGPT-backed sessions can reject it with "model ... is not supported when using Codex with a ChatGPT account."
+
+OpenAI documents Codex fast mode for GPT-5.4 as an interactive/session-level feature. In local testing with `codex-cli 0.108.0-alpha.12`, `codex exec` can run `gpt-5.4`, but there is not yet a stable documented non-interactive Paperclip adapter flag for a `fast` versus `standard` toggle.
+
+Current Paperclip stance:
+
+- `gpt-5.4` is safe to use as the default model.
+- `fast mode` is not exposed as a first-class stable adapter field yet.
+- If OpenAI ships a stable non-interactive CLI/config surface for service tier or fast mode, Paperclip can add a dedicated adapter setting without changing the run model.

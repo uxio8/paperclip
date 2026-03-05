@@ -98,6 +98,31 @@ export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 export const ISSUE_PRIORITIES = ["critical", "high", "medium", "low"] as const;
 export type IssuePriority = (typeof ISSUE_PRIORITIES)[number];
 
+export const INBOUND_CHANNEL_TYPES = ["whatsapp_webhook"] as const;
+export type InboundChannelType = (typeof INBOUND_CHANNEL_TYPES)[number];
+
+export const INBOUND_CHANNEL_STATUSES = ["active", "paused", "archived"] as const;
+export type InboundChannelStatus = (typeof INBOUND_CHANNEL_STATUSES)[number];
+
+export const CUSTOMER_VISIBLE_STATUSES = [
+  "received",
+  "triaged",
+  "working",
+  "resolved",
+  "rejected",
+  "needs_info",
+] as const;
+export type CustomerVisibleStatus = (typeof CUSTOMER_VISIBLE_STATUSES)[number];
+
+export const CUSTOMER_INTAKE_KINDS = ["bug", "feature", "question"] as const;
+export type CustomerIntakeKind = (typeof CUSTOMER_INTAKE_KINDS)[number];
+
+export const CUSTOMER_MESSAGE_DIRECTIONS = ["inbound", "outbound"] as const;
+export type CustomerMessageDirection = (typeof CUSTOMER_MESSAGE_DIRECTIONS)[number];
+
+export const CUSTOMER_MESSAGE_DELIVERY_STATUSES = ["received", "queued", "sent", "failed"] as const;
+export type CustomerMessageDeliveryStatus = (typeof CUSTOMER_MESSAGE_DELIVERY_STATUSES)[number];
+
 export const GOAL_LEVELS = ["company", "team", "agent", "task"] as const;
 export type GoalLevel = (typeof GOAL_LEVELS)[number];
 

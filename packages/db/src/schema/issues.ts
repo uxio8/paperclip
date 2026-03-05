@@ -14,6 +14,7 @@ import { projects } from "./projects.js";
 import { goals } from "./goals.js";
 import { companies } from "./companies.js";
 import { heartbeatRuns } from "./heartbeat_runs.js";
+import { externalRequesters } from "./external_requesters.js";
 
 export const issues = pgTable(
   "issues",
@@ -37,6 +38,14 @@ export const issues = pgTable(
     createdByUserId: text("created_by_user_id"),
     issueNumber: integer("issue_number"),
     identifier: text("identifier"),
+    externalRequesterId: uuid("external_requester_id").references(() => externalRequesters.id, { onDelete: "set null" }),
+    sourceChannel: text("source_channel"),
+    customerVisibleStatus: text("customer_visible_status"),
+    intakeKind: text("intake_kind"),
+    deliveryBranch: text("delivery_branch"),
+    deliveryCommitSha: text("delivery_commit_sha"),
+    deliveryPrUrl: text("delivery_pr_url"),
+    customerResolutionSummary: text("customer_resolution_summary"),
     requestDepth: integer("request_depth").notNull().default(0),
     billingCode: text("billing_code"),
     assigneeAdapterOverrides: jsonb("assignee_adapter_overrides").$type<Record<string, unknown>>(),
@@ -61,6 +70,11 @@ export const issues = pgTable(
     ),
     parentIdx: index("issues_company_parent_idx").on(table.companyId, table.parentId),
     projectIdx: index("issues_company_project_idx").on(table.companyId, table.projectId),
+    externalRequesterIdx: index("issues_company_external_requester_idx").on(table.companyId, table.externalRequesterId),
+    customerVisibleStatusIdx: index("issues_company_customer_visible_status_idx").on(
+      table.companyId,
+      table.customerVisibleStatus,
+    ),
     identifierIdx: uniqueIndex("issues_identifier_idx").on(table.identifier),
   }),
 );

@@ -26,8 +26,12 @@ function parseNumber(value: string | undefined, fallback: number) {
 }
 
 function jwtConfig() {
-  const secret = process.env.PAPERCLIP_AGENT_JWT_SECRET;
-  if (!secret) return null;
+  // Keep local agent JWT resolution aligned with Better Auth so local_trusted
+  // runs can still authenticate agent heartbeats without extra setup.
+  const secret =
+    process.env.PAPERCLIP_AGENT_JWT_SECRET?.trim() ||
+    process.env.BETTER_AUTH_SECRET?.trim() ||
+    "paperclip-dev-secret";
 
   return {
     secret,

@@ -1,4 +1,10 @@
-import type { IssuePriority, IssueStatus } from "../constants.js";
+import type {
+  CustomerIntakeKind,
+  CustomerVisibleStatus,
+  InboundChannelType,
+  IssuePriority,
+  IssueStatus,
+} from "../constants.js";
 import type { Goal } from "./goal.js";
 import type { Project, ProjectWorkspace } from "./project.js";
 
@@ -70,6 +76,14 @@ export interface Issue {
   createdByUserId: string | null;
   issueNumber: number | null;
   identifier: string | null;
+  externalRequesterId: string | null;
+  sourceChannel: InboundChannelType | null;
+  customerVisibleStatus: CustomerVisibleStatus | null;
+  intakeKind: CustomerIntakeKind | null;
+  deliveryBranch: string | null;
+  deliveryCommitSha: string | null;
+  deliveryPrUrl: string | null;
+  customerResolutionSummary: string | null;
   requestDepth: number;
   billingCode: string | null;
   assigneeAdapterOverrides: IssueAssigneeAdapterOverrides | null;

@@ -50,9 +50,24 @@ export function sidebarBadgeRoutes(db: Db) {
           .then((rows) => Number(rows[0]?.count ?? 0))
         : 0;
 
+    const customerIntakeCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(issues)
+      .where(
+        and(
+          eq(issues.companyId, companyId),
+          inArray(issues.status, [...INBOX_ISSUE_STATUSES]),
+          eq(issues.customerVisibleStatus, "received"),
+          sql`${issues.externalRequesterId} IS NOT NULL`,
+          isNull(issues.hiddenAt),
+        ),
+      )
+      .then((rows) => Number(rows[0]?.count ?? 0));
+
     const badges = await svc.get(companyId, {
       joinRequests: joinRequestCount,
       assignedIssues: assignedIssueCount,
+      customerIntake: customerIntakeCount,
     });
     res.json(badges);
   });

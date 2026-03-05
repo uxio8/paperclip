@@ -27,6 +27,8 @@ const PAPERCLIP_SKILLS_CANDIDATES = [
 ];
 const CODEX_ROLLOUT_NOISE_RE =
   /^\d{4}-\d{2}-\d{2}T[^\s]+\s+ERROR\s+codex_core::rollout::list:\s+state db missing rollout path for thread\s+[a-z0-9-]+$/i;
+const CODEX_CHATGPT_MODEL_UNSUPPORTED_RE =
+  /model\s+['"`]?([a-z0-9._-]+)['"`]?\s+is\s+not\s+supported\s+when\s+using\s+codex\s+with\s+a\s+chatgpt\s+account/i;
 
 function stripCodexRolloutNoise(text: string): string {
   const parts = text.split(/\r?\n/);
@@ -50,6 +52,12 @@ function firstNonEmptyLine(text: string): string {
       .map((line) => line.trim())
       .find(Boolean) ?? ""
   );
+}
+
+function formatCodexUnsupportedModelMessage(message: string, configuredModel: string): string {
+  const unsupportedModel = message.match(CODEX_CHATGPT_MODEL_UNSUPPORTED_RE)?.[1]?.trim() || configuredModel.trim();
+  if (!unsupportedModel) return message;
+  return `Codex model \`${unsupportedModel}\` is not supported for ChatGPT-backed sessions. Switch adapterConfig.model to \`gpt-5.4\` or use OPENAI_API_KEY auth for API-only models.`;
 }
 
 function codexHomeDir(env?: Record<string, string>): string {
@@ -377,7 +385,9 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const parsedError = typeof attempt.parsed.errorMessage === "string" ? attempt.parsed.errorMessage.trim() : "";
     const stderrLine = firstNonEmptyLine(attempt.proc.stderr);
     const fallbackErrorMessage =
-      parsedError ||
+      (parsedError && CODEX_CHATGPT_MODEL_UNSUPPORTED_RE.test(parsedError)
+        ? formatCodexUnsupportedModelMessage(parsedError, model)
+        : parsedError) ||
       stderrLine ||
       `Codex exited with code ${attempt.proc.exitCode ?? -1}`;
 

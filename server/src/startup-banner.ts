@@ -66,6 +66,7 @@ function redactConnectionString(raw: string): string {
 }
 
 function resolveAgentJwtSecretStatus(
+  deploymentMode: DeploymentMode,
   envFilePath: string,
 ): {
   status: "pass" | "warn";
@@ -79,6 +80,14 @@ function resolveAgentJwtSecretStatus(
     };
   }
 
+  const betterAuthValue = process.env.BETTER_AUTH_SECRET?.trim();
+  if (betterAuthValue) {
+    return {
+      status: "pass",
+      message: "using BETTER_AUTH_SECRET",
+    };
+  }
+
   if (existsSync(envFilePath)) {
     const parsed = parseEnvFileContents(readFileSync(envFilePath, "utf-8"));
     const fileValue = typeof parsed.PAPERCLIP_AGENT_JWT_SECRET === "string" ? parsed.PAPERCLIP_AGENT_JWT_SECRET.trim() : "";
@@ -88,6 +97,13 @@ function resolveAgentJwtSecretStatus(
         message: `found in ${envFilePath} but not loaded`,
       };
     }
+  }
+
+  if (deploymentMode === "local_trusted") {
+    return {
+      status: "warn",
+      message: "using built-in local fallback",
+    };
   }
 
   return {
@@ -103,7 +119,7 @@ export function printStartupBanner(opts: StartupBannerOptions): void {
   const uiUrl = opts.uiMode === "none" ? "disabled" : baseUrl;
   const configPath = resolvePaperclipConfigPath();
   const envFilePath = resolvePaperclipEnvPath();
-  const agentJwtSecret = resolveAgentJwtSecretStatus(envFilePath);
+  const agentJwtSecret = resolveAgentJwtSecretStatus(opts.deploymentMode, envFilePath);
 
   const dbMode =
     opts.db.mode === "embedded-postgres"

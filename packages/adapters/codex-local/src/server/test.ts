@@ -47,6 +47,8 @@ function summarizeProbeDetail(stdout: string, stderr: string, parsedError: strin
 
 const CODEX_AUTH_REQUIRED_RE =
   /(?:not\s+logged\s+in|login\s+required|authentication\s+required|unauthorized|invalid(?:\s+or\s+missing)?\s+api(?:[_\s-]?key)?|openai[_\s-]?api[_\s-]?key|api[_\s-]?key.*required|please\s+run\s+`?codex\s+login`?)/i;
+const CODEX_CHATGPT_MODEL_UNSUPPORTED_RE =
+  /model\s+['"`]?[a-z0-9._-]+['"`]?\s+is\s+not\s+supported\s+when\s+using\s+codex\s+with\s+a\s+chatgpt\s+account/i;
 
 export async function testEnvironment(
   ctx: AdapterEnvironmentTestContext,
@@ -196,6 +198,15 @@ export async function testEnvironment(
           ...(detail ? { detail } : {}),
           hint:
             "Set OPENAI_API_KEY, run `codex login`, or configure a session pool with PAPERCLIP_CODEX_SESSION_POOL_FILE and PAPERCLIP_CODEX_SESSION_STORE_DIR.",
+        });
+      } else if (CODEX_CHATGPT_MODEL_UNSUPPORTED_RE.test(authEvidence)) {
+        checks.push({
+          code: "codex_hello_probe_model_unsupported_for_chatgpt",
+          level: "error",
+          message: "Codex rejected the configured model for a ChatGPT-backed session.",
+          ...(detail ? { detail } : {}),
+          hint:
+            "Switch adapterConfig.model to `gpt-5.4` or another model validated for your ChatGPT Codex account, or run the agent with OPENAI_API_KEY auth instead.",
         });
       } else {
         checks.push({

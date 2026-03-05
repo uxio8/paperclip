@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { ISSUE_PRIORITIES, ISSUE_STATUSES } from "../constants.js";
+import {
+  CUSTOMER_INTAKE_KINDS,
+  CUSTOMER_VISIBLE_STATUSES,
+  INBOUND_CHANNEL_TYPES,
+  ISSUE_PRIORITIES,
+  ISSUE_STATUSES,
+} from "../constants.js";
 
 export const issueAssigneeAdapterOverridesSchema = z
   .object({
@@ -18,6 +24,14 @@ export const createIssueSchema = z.object({
   priority: z.enum(ISSUE_PRIORITIES).optional().default("medium"),
   assigneeAgentId: z.string().uuid().optional().nullable(),
   assigneeUserId: z.string().optional().nullable(),
+  externalRequesterId: z.string().uuid().optional().nullable(),
+  sourceChannel: z.enum(INBOUND_CHANNEL_TYPES).optional().nullable(),
+  customerVisibleStatus: z.enum(CUSTOMER_VISIBLE_STATUSES).optional().nullable(),
+  intakeKind: z.enum(CUSTOMER_INTAKE_KINDS).optional().nullable(),
+  deliveryBranch: z.string().trim().min(1).max(255).optional().nullable(),
+  deliveryCommitSha: z.string().trim().min(1).max(255).optional().nullable(),
+  deliveryPrUrl: z.string().url().optional().nullable(),
+  customerResolutionSummary: z.string().trim().min(1).max(8000).optional().nullable(),
   requestDepth: z.number().int().nonnegative().optional().default(0),
   billingCode: z.string().optional().nullable(),
   assigneeAdapterOverrides: issueAssigneeAdapterOverridesSchema.optional().nullable(),

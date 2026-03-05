@@ -6,6 +6,7 @@ import { activityApi } from "../api/activity";
 import { heartbeatsApi } from "../api/heartbeats";
 import { agentsApi } from "../api/agents";
 import { authApi } from "../api/auth";
+import { customerIntakeApi } from "../api/customerIntake";
 import { projectsApi } from "../api/projects";
 import { useCompany } from "../context/CompanyContext";
 import { useToast } from "../context/ToastContext";
@@ -18,6 +19,7 @@ import { InlineEditor } from "../components/InlineEditor";
 import { CommentThread } from "../components/CommentThread";
 import { IssueProperties } from "../components/IssueProperties";
 import { LiveRunWidget } from "../components/LiveRunWidget";
+import { Field } from "../components/agent-config-primitives";
 import type { MentionOption } from "../components/MarkdownEditor";
 import { StatusIcon } from "../components/StatusIcon";
 import { PriorityIcon } from "../components/PriorityIcon";
@@ -35,6 +37,7 @@ import {
   ChevronDown,
   ChevronRight,
   EyeOff,
+  ExternalLink,
   Hexagon,
   ListTree,
   MessageSquare,
@@ -43,12 +46,25 @@ import {
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
-import type { ActivityEvent } from "@paperclipai/shared";
-import type { Agent, IssueAttachment } from "@paperclipai/shared";
+import {
+  CUSTOMER_INTAKE_KINDS,
+  CUSTOMER_VISIBLE_STATUSES,
+  type ActivityEvent,
+  type Agent,
+  type CustomerThread,
+  type IssueAttachment,
+} from "@paperclipai/shared";
 
 type CommentReassignment = {
   assigneeAgentId: string | null;
   assigneeUserId: string | null;
+};
+
+type CustomerDeliveryDraft = {
+  customerResolutionSummary: string;
+  deliveryBranch: string;
+  deliveryCommitSha: string;
+  deliveryPrUrl: string;
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -143,6 +159,20 @@ function ActorIdentity({ evt, agentMap }: { evt: ActivityEvent; agentMap: Map<st
   return <Identity name={id || "Unknown"} size="sm" />;
 }
 
+function normalizeOptionalField(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function humanizeLabel(value: string | null | undefined) {
+  if (!value) return "none";
+  return value.replace(/_/g, " ");
+}
+
+function messageTimestamp(message: NonNullable<CustomerThread["messages"]>[number]) {
+  return message.receivedAt ?? message.sentAt ?? message.createdAt;
+}
+
 export function IssueDetail() {
   const { issueId } = useParams<{ issueId: string }>();
   const { selectedCompanyId } = useCompany();
@@ -159,6 +189,12 @@ export function IssueDetail() {
     cost: false,
   });
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [deliveryDraft, setDeliveryDraft] = useState<CustomerDeliveryDraft>({
+    customerResolutionSummary: "",
+    deliveryBranch: "",
+    deliveryCommitSha: "",
+    deliveryPrUrl: "",
+  });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: issue, isLoading, error } = useQuery({
@@ -196,6 +232,15 @@ export function IssueDetail() {
     queryKey: queryKeys.issues.attachments(issueId!),
     queryFn: () => issuesApi.listAttachments(issueId!),
     enabled: !!issueId,
+  });
+
+  const {
+    data: customerThread,
+    isLoading: isCustomerThreadLoading,
+  } = useQuery({
+    queryKey: queryKeys.customerIntake.issueThread(issueId!),
+    queryFn: () => customerIntakeApi.getThreadByIssue(issueId!),
+    enabled: !!issueId && !!issue?.externalRequesterId,
   });
 
   const { data: liveRuns } = useQuery({
@@ -373,6 +418,20 @@ export function IssueDetail() {
     };
   }, [linkedRuns]);
 
+  useEffect(() => {
+    setDeliveryDraft({
+      customerResolutionSummary: issue?.customerResolutionSummary ?? "",
+      deliveryBranch: issue?.deliveryBranch ?? "",
+      deliveryCommitSha: issue?.deliveryCommitSha ?? "",
+      deliveryPrUrl: issue?.deliveryPrUrl ?? "",
+    });
+  }, [
+    issue?.customerResolutionSummary,
+    issue?.deliveryBranch,
+    issue?.deliveryCommitSha,
+    issue?.deliveryPrUrl,
+  ]);
+
   const invalidateIssue = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.issues.detail(issueId!) });
     queryClient.invalidateQueries({ queryKey: queryKeys.issues.activity(issueId!) });
@@ -381,6 +440,10 @@ export function IssueDetail() {
     queryClient.invalidateQueries({ queryKey: queryKeys.issues.attachments(issueId!) });
     queryClient.invalidateQueries({ queryKey: queryKeys.issues.liveRuns(issueId!) });
     queryClient.invalidateQueries({ queryKey: queryKeys.issues.activeRun(issueId!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.customerIntake.issueThread(issueId!) });
+    if (customerThread?.id) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.customerIntake.thread(customerThread.id) });
+    }
     if (selectedCompanyId) {
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.list(selectedCompanyId) });
     }
@@ -397,6 +460,13 @@ export function IssueDetail() {
         body: truncate(updated.title, 96),
         tone: "success",
         action: { label: `View ${issueRef}`, href: `/issues/${updated.identifier ?? updated.id}` },
+      });
+    },
+    onError: (err) => {
+      pushToast({
+        title: "Issue update failed",
+        body: err instanceof Error ? err.message : "Paperclip could not update the issue.",
+        tone: "error",
       });
     },
   });
@@ -515,6 +585,16 @@ export function IssueDetail() {
   };
 
   const isImageAttachment = (attachment: IssueAttachment) => attachment.contentType.startsWith("image/");
+  const customerMessages = customerThread?.messages ?? [];
+
+  const saveCustomerDelivery = () => {
+    updateIssue.mutate({
+      customerResolutionSummary: normalizeOptionalField(deliveryDraft.customerResolutionSummary),
+      deliveryBranch: normalizeOptionalField(deliveryDraft.deliveryBranch),
+      deliveryCommitSha: normalizeOptionalField(deliveryDraft.deliveryCommitSha),
+      deliveryPrUrl: normalizeOptionalField(deliveryDraft.deliveryPrUrl),
+    });
+  };
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -673,6 +753,231 @@ export function IssueDetail() {
           }}
         />
       </div>
+
+      {issue.externalRequesterId && (
+        <div className="space-y-4 rounded-lg border border-border bg-card/40 px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-medium">Customer Intake</h3>
+              <p className="text-xs text-muted-foreground">
+                External requester linked through {humanizeLabel(issue.sourceChannel)}.
+              </p>
+            </div>
+            <span className="rounded-full border border-border px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+              {humanizeLabel(issue.customerVisibleStatus)}
+            </span>
+          </div>
+
+          {isCustomerThreadLoading ? (
+            <p className="text-xs text-muted-foreground">Loading customer thread…</p>
+          ) : !customerThread ? (
+            <p className="text-xs text-muted-foreground">No customer thread is linked to this issue.</p>
+          ) : (
+            <>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2 rounded-md border border-border px-3 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Requester
+                  </div>
+                  <div className="text-sm">
+                    {customerThread.requester?.displayName ?? "Unnamed requester"}
+                  </div>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    {customerThread.requester?.phoneNumber && (
+                      <div>Phone: {customerThread.requester.phoneNumber}</div>
+                    )}
+                    {customerThread.requester?.email && (
+                      <div>Email: {customerThread.requester.email}</div>
+                    )}
+                    {customerThread.requester?.externalRef && (
+                      <div>External ref: {customerThread.requester.externalRef}</div>
+                    )}
+                    <div>Channel: {customerThread.channel?.name ?? humanizeLabel(customerThread.sourceChannel)}</div>
+                    <div>Thread: {customerThread.externalThreadName ?? customerThread.externalThreadId}</div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 rounded-md border border-border px-3 py-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Customer Workflow
+                  </div>
+                  <Field label="Visible status">
+                    <select
+                      className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                      value={issue.customerVisibleStatus ?? "received"}
+                      onChange={(e) =>
+                        updateIssue.mutate({
+                          customerVisibleStatus: e.target.value,
+                        })
+                      }
+                    >
+                      {CUSTOMER_VISIBLE_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {humanizeLabel(status)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Intake kind">
+                    <select
+                      className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                      value={issue.intakeKind ?? "__unset__"}
+                      onChange={(e) =>
+                        updateIssue.mutate({
+                          intakeKind: e.target.value === "__unset__" ? null : e.target.value,
+                        })
+                      }
+                    >
+                      <option value="__unset__">Unclassified</option>
+                      {CUSTOMER_INTAKE_KINDS.map((kind) => (
+                        <option key={kind} value={kind}>
+                          {humanizeLabel(kind)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-md border border-border px-3 py-3">
+                <div>
+                  <div className="text-sm font-medium">Delivery Metadata</div>
+                  <p className="text-xs text-muted-foreground">
+                    Branch, commit, PR, and the customer summary used when the issue is resolved.
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Field label="Branch">
+                    <input
+                      className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                      type="text"
+                      value={deliveryDraft.deliveryBranch}
+                      onChange={(e) =>
+                        setDeliveryDraft((current) => ({ ...current, deliveryBranch: e.target.value }))
+                      }
+                      placeholder="codex/customer-ticket-123"
+                    />
+                  </Field>
+                  <Field label="Commit SHA">
+                    <input
+                      className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                      type="text"
+                      value={deliveryDraft.deliveryCommitSha}
+                      onChange={(e) =>
+                        setDeliveryDraft((current) => ({ ...current, deliveryCommitSha: e.target.value }))
+                      }
+                      placeholder="abc1234"
+                    />
+                  </Field>
+                  <Field label="PR URL">
+                    <input
+                      className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                      type="url"
+                      value={deliveryDraft.deliveryPrUrl}
+                      onChange={(e) =>
+                        setDeliveryDraft((current) => ({ ...current, deliveryPrUrl: e.target.value }))
+                      }
+                      placeholder="https://github.com/..."
+                    />
+                  </Field>
+                </div>
+                <Field label="Customer resolution summary">
+                  <textarea
+                    className="min-h-24 w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                    value={deliveryDraft.customerResolutionSummary}
+                    onChange={(e) =>
+                      setDeliveryDraft((current) => ({
+                        ...current,
+                        customerResolutionSummary: e.target.value,
+                      }))
+                    }
+                    placeholder="Summarize what changed for the customer."
+                  />
+                </Field>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={saveCustomerDelivery}
+                    disabled={updateIssue.isPending}
+                  >
+                    {updateIssue.isPending ? "Saving..." : "Save delivery metadata"}
+                  </Button>
+                  {issue.deliveryPrUrl && (
+                    <a
+                      href={issue.deliveryPrUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Open PR
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm font-medium">Customer Thread</div>
+                  <p className="text-xs text-muted-foreground">
+                    Inbound and outbound webhook messages linked to this issue.
+                  </p>
+                </div>
+                {customerMessages.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No customer messages yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {customerMessages.map((message) => (
+                      <div key={message.id} className="rounded-md border border-border px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span className="rounded-full border border-border px-2 py-0.5 uppercase tracking-wide">
+                            {message.direction}
+                          </span>
+                          <span>{humanizeLabel(message.senderRole)}</span>
+                          <span>{humanizeLabel(message.deliveryStatus)}</span>
+                          <span className="ml-auto">{relativeTime(messageTimestamp(message))}</span>
+                        </div>
+                        <div className="mt-2 whitespace-pre-wrap text-sm">
+                          {message.body ?? "Media attachment received."}
+                        </div>
+                        {message.attachments && message.attachments.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {message.attachments.map((attachment) => (
+                              <div key={attachment.id} className="rounded-md border border-border bg-accent/10 p-2">
+                                <a
+                                  href={attachment.contentPath}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs hover:underline"
+                                >
+                                  {attachment.originalFilename ?? attachment.id}
+                                </a>
+                                <div className="text-[11px] text-muted-foreground">
+                                  {attachment.contentType} · {(attachment.byteSize / 1024).toFixed(1)} KB
+                                </div>
+                                {isImageAttachment(attachment) && (
+                                  <a href={attachment.contentPath} target="_blank" rel="noreferrer">
+                                    <img
+                                      src={attachment.contentPath}
+                                      alt={attachment.originalFilename ?? "customer attachment"}
+                                      className="mt-2 max-h-48 rounded border border-border object-contain bg-background"
+                                      loading="lazy"
+                                    />
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
