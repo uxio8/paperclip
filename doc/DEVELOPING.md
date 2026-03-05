@@ -106,6 +106,16 @@ Configure storage provider/settings:
 pnpm paperclipai configure --section storage
 ```
 
+## Customer Intake
+
+Paperclip V1 supports external customer intake through a normalized WhatsApp webhook.
+
+- inbound endpoint: `POST /api/inbound/whatsapp/:channelId`
+- channel setup UI: `Company Settings -> Customer Intake`
+- internal APIs: inbound channel config plus customer thread lookup
+
+The production contract, payload examples, and operational workflow live in `doc/CUSTOMER-INTAKE.md`.
+
 ## Default Agent Workspaces
 
 When a local agent run has no resolved project/session workspace, Paperclip falls back to an agent home workspace under the instance root:

@@ -69,6 +69,8 @@ V1 implementation extends this baseline into a company-centric, governance-aware
 - Budget settings and hard-stop enforcement
 - Board web UI for dashboard, org chart, tasks, agents, approvals, costs
 - Agent-facing API contract (task read/write, heartbeat report, cost report)
+- External customer intake via normalized WhatsApp webhook, external requesters, and customer thread history
+- Customer-facing issue lifecycle with automatic ack on create and automatic resolution message on close
 - Auditable activity log for all mutating actions
 
 ## 5.2 Out of Scope (V1)
@@ -202,6 +204,14 @@ Invariant: at least one root `company` level goal per company.
 - `created_by_user_id` uuid fk `users.id` null
 - `request_depth` int not null default 0
 - `billing_code` text null
+- `external_requester_id` uuid fk `external_requesters.id` null
+- `source_channel` text null
+- `customer_visible_status` text null
+- `intake_kind` text null
+- `delivery_branch` text null
+- `delivery_commit_sha` text null
+- `delivery_pr_url` text null
+- `customer_resolution_summary` text null
 - `started_at` timestamptz null
 - `completed_at` timestamptz null
 - `cancelled_at` timestamptz null
@@ -212,6 +222,9 @@ Invariants:
 - task must trace to company goal chain via `goal_id`, `parent_id`, or project-goal linkage
 - `in_progress` requires assignee
 - terminal states: `done | cancelled`
+- customer-facing issues cannot move to `done` without `customer_resolution_summary`
+- delivery metadata can only be recorded when the issue is moving to `in_review` or is already `in_review`
+- delivery metadata requires the linked project to have a primary workspace `cwd`
 
 ## 7.7 `issue_comments`
 
@@ -221,6 +234,13 @@ Invariants:
 - `author_agent_id` uuid fk `agents.id` null
 - `author_user_id` uuid fk `users.id` null
 - `body` text not null
+
+## 7.7.1 Customer intake tables
+
+- `inbound_channels`: company-scoped external intake channels, including webhook secret, default project, triage agent, ack template, resolution template, and optional outbound webhook URL
+- `external_requesters`: company-scoped external customer identities used for inbound tickets
+- `customer_threads`: one active external conversation thread per linked issue
+- `customer_messages`: inbound/outbound customer message log, including delivery status and raw webhook payload
 
 ## 7.8 `heartbeat_runs`
 

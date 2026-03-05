@@ -24,7 +24,8 @@ import {
   projectService,
 } from "../services/index.js";
 import { logger } from "../middleware/logger.js";
-import { forbidden, HttpError, unauthorized, unprocessable } from "../errors.js";
+import { forbidden, HttpError, unauthorized } from "../errors.js";
+import { assertCustomerIssuePatchPolicy } from "../services/customer-intake-policy.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 
 const MAX_ATTACHMENT_BYTES = Number(process.env.PAPERCLIP_ATTACHMENT_MAX_BYTES) || 10 * 1024 * 1024;
@@ -135,28 +136,36 @@ export function issueRoutes(db: Db, storage: StorageService) {
       patch.projectId !== undefined ? (patch.projectId as string | null) : existing.projectId;
     const nextCustomerResolutionSummary =
       patch.customerResolutionSummary !== undefined
-        ? trimOptionalString(patch.customerResolutionSummary)
+        ? (trimOptionalString(patch.customerResolutionSummary) as string | null)
         : existing.customerResolutionSummary;
     const nextDeliveryBranch =
-      patch.deliveryBranch !== undefined ? trimOptionalString(patch.deliveryBranch) : existing.deliveryBranch;
+      patch.deliveryBranch !== undefined
+        ? (trimOptionalString(patch.deliveryBranch) as string | null)
+        : existing.deliveryBranch;
     const nextDeliveryCommitSha =
-      patch.deliveryCommitSha !== undefined ? trimOptionalString(patch.deliveryCommitSha) : existing.deliveryCommitSha;
+      patch.deliveryCommitSha !== undefined
+        ? (trimOptionalString(patch.deliveryCommitSha) as string | null)
+        : existing.deliveryCommitSha;
     const nextDeliveryPrUrl =
-      patch.deliveryPrUrl !== undefined ? trimOptionalString(patch.deliveryPrUrl) : existing.deliveryPrUrl;
+      patch.deliveryPrUrl !== undefined
+        ? (trimOptionalString(patch.deliveryPrUrl) as string | null)
+        : existing.deliveryPrUrl;
+    const deliveryMetadataBeingSet =
+      (patch.deliveryBranch !== undefined && Boolean(nextDeliveryBranch)) ||
+      (patch.deliveryCommitSha !== undefined && Boolean(nextDeliveryCommitSha)) ||
+      (patch.deliveryPrUrl !== undefined && Boolean(nextDeliveryPrUrl));
+    const project =
+      deliveryMetadataBeingSet && nextProjectId ? await projectsSvc.getById(nextProjectId) : null;
 
-    if (nextExternalRequesterId && nextStatus === "done" && !nextCustomerResolutionSummary) {
-      throw unprocessable("Customer-facing issues require customerResolutionSummary before done");
-    }
-
-    if (nextDeliveryBranch || nextDeliveryCommitSha || nextDeliveryPrUrl) {
-      if (!nextProjectId) {
-        throw unprocessable("Delivery metadata requires a project with a primary workspace");
-      }
-      const project = await projectsSvc.getById(nextProjectId);
-      if (!project?.primaryWorkspace?.cwd) {
-        throw unprocessable("Delivery metadata requires the project to have a primary workspace cwd");
-      }
-    }
+    assertCustomerIssuePatchPolicy({
+      isCustomerIssue: Boolean(nextExternalRequesterId),
+      currentStatus: existing.status,
+      nextStatus,
+      nextCustomerResolutionSummary,
+      deliveryMetadataBeingSet,
+      nextProjectId,
+      projectHasPrimaryWorkspace: Boolean(project?.primaryWorkspace?.cwd),
+    });
   }
 
   async function assertAgentRunCheckoutOwnership(
